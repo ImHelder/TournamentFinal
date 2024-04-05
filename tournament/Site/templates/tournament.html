@@ -125,7 +125,6 @@
 
     <div>
       <h2>Tours du tournoi</h2>
-
       {% for round_name, matches_in_round in rounds.items %}
       <div class="round">
         <h3>{{ round_name }}</h3>
@@ -139,6 +138,7 @@
             <div class="match-score">
               {% if match.winner.name %} {{ match.firstParticipantScore }} -
               {{match.secondParticipantScore }} {% else %}
+
               <form
                 action="{% url 'update_round_scores' match.id %}"
                 method="post"
@@ -167,5 +167,29 @@
       </div>
       {% endfor %}
     </div>
+
+    {% if tournament.isDone %}
+    <div>
+      <h2>Classement du tournoi {{ tournament.name }}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Position</th>
+            <th>Participant</th>
+            <th>Score total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rank in ranking %}
+          <tr>
+            <td>{{ rank.position }}</td>
+            <td>{{ rank.participant.name }}</td>
+            <td>{{ rank.total_score }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {%endif%}
   </body>
 </html>

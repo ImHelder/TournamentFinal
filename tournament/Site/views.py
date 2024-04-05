@@ -3,9 +3,10 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Tournament, Participant, Match, Sport
-from django.http import Http404, HttpResponse
+from .models import Tournament, Participant, Match
 from .forms import TournamentForm
+from django.db.models import Sum
+
 
 def index(request):
         tournaments = Tournament.objects.all()
@@ -35,8 +36,18 @@ def tournamentDetail(request, tournamentId):
             roundName = determine_round_name(match)
             rounds[roundName].append(match)
 
-        print("rounds", rounds)
-        return render(request, 'tournament.html', {'tournament': tournament, 'participants': participants, "notParticipants": notParticipants, 'rounds': rounds})
+        ranking = []
+        for index, participant in enumerate(participants, start=1):
+            total_score = Match.objects.filter(tournament=tournament, winner=participant).aggregate(total_score=Sum('firstParticipantScore') + Sum('secondParticipantScore'))['total_score']
+            total_score = total_score if total_score is not None else 0
+            ranking.append({'participant': participant, 'total_score': total_score})
+
+        sorted_ranking = sorted(ranking, key=lambda x: x['total_score'], reverse=True)
+
+        for index, item in enumerate(sorted_ranking, start=1):
+            item['position'] = index
+
+        return render(request, 'tournament.html', {'tournament': tournament, 'participants': participants, "notParticipants": notParticipants, 'rounds': rounds, "ranking": ranking[::-1]})
 
 def add_participant(request, tournament_id):
     if request.method == 'POST':
@@ -60,8 +71,8 @@ def create_matches(request, tournamentId):
     tournament = Tournament.objects.get(pk=tournamentId)
     participants = list(tournament.participants.all())
 
-    if len(participants) % 2 != 0:
-        return render(request, 'error.html', {'message': 'Le nombre de participants doit être pair.'})
+    if len(participants) !=4:
+        return render(request, 'error.html', {'message': 'Le nombre de participants doit être de 4.'})
 
     random.shuffle(participants)
 
@@ -95,32 +106,46 @@ def updateRoundScore(request, matchId):
     firstParticipantScore = int(request.POST.get('firstParticipantScore'))
     secondParticipantScore = int(request.POST.get('secondParticipantScore'))
 
+    if firstParticipantScore == secondParticipantScore:
+        return render(request, 'error.html', {'message': 'Il ne peut pas y avoir une égalité.'})
+
     match.firstParticipantScore = firstParticipantScore
     match.secondParticipantScore = secondParticipantScore
 
+    print("matchnumber", match.roundNumber)
     if firstParticipantScore > secondParticipantScore:
         match.winner = match.firstParticipant
-        afterMatch = Match.objects.filter(firstParticipant=match.secondParticipant, roundNumber=match.roundNumber + 1).first()
-        if(afterMatch == None):
-            afterMatch = Match.objects.create(
-                firstParticipant=match.firstParticipant,
-                roundNumber=match.roundNumber + 1)
+        if(match.roundNumber == 1):
+            afterMatch = Match.objects.filter(tournament=match.tournament,roundNumber=match.roundNumber + 1).first()
+            print("premier",afterMatch)
+            if(afterMatch == None):
+                afterMatch = Match.objects.create(
+                    tournament=match.tournament,
+                    firstParticipant=match.firstParticipant,
+                    roundNumber=match.roundNumber + 1)
+            else:
+                print(afterMatch)
+                afterMatch.secondParticipant = match.firstParticipant
+                afterMatch.save()
         else:
-            print(afterMatch)
-            afterMatch.secondParticipant = match.firstParticipant
-            afterMatch.save()
-       
+            Tournament.objects.filter(pk=match.tournament.id).update(isDone=True)
+
     elif firstParticipantScore < secondParticipantScore:
         match.winner = match.secondParticipant
-        afterMatch = Match.objects.filter(firstParticipant=match.firstParticipant, roundNumber=match.roundNumber + 1).first()
-        if(afterMatch == None):
-            afterMatch = Match.objects.create(
-                firstParticipant=match.secondParticipant,
-                roundNumber=match.roundNumber + 1)
+        if(match.roundNumber == 1):
+            afterMatch = Match.objects.filter(tournament=match.tournament,roundNumber=match.roundNumber + 1).first()
+            print("deuxieme",afterMatch)
+            if(afterMatch == None):
+                afterMatch = Match.objects.create(
+                    tournament=match.tournament,
+                    firstParticipant=match.secondParticipant,
+                    roundNumber=match.roundNumber + 1)
+            else:
+                print(afterMatch)
+                afterMatch.secondParticipant = match.secondParticipant
+                afterMatch.save()
         else:
-            print(afterMatch)
-            afterMatch.secondParticipant = match.secondParticipant
-            afterMatch.save()
+            Tournament.objects.filter(pk=match.tournament.id).update(isDone=True)
     else:
         match.winner = None
 
