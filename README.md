@@ -7,3 +7,5 @@ Puis installer les dépendences présentes dans requirements.txt avec <code>pip 
 
 NE METTRE QUE 4 SVP
 OU ALORS DES PUISSANCES DE 2 (ça devrait normalement fonctionner(en fait non ça ne fonctionne pas)...)
+
+Il faut d'abord créer un tournoi, cliquer sur ce tournoi et ajouter des participants. Ensuite mettre les scores jusqu'au round final. Les statistiques du tournoi seront affichées.
