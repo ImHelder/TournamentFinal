@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TourNament</title>
+    <style>
+      body: {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Liste des tournois</h1>
+
+    <form method="post">
+      {% csrf_token %} {{ form.as_p }}
+      <button type="submit">Créer un tournoi</button>
+    </form>
+
+    <ul>
+      {% for tournament in tournaments %}
+      <li>
+        <a href="{% url 'tournamentDetail' tournament.id %}">
+          Tournoi de {{ tournament.sport }}: {{ tournament.name }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>

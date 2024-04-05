@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{tournament.name}}</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      #enter {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+      h2 {
+        margin-top: 50px;
+      }
+      form {
+        display: flex;
+        flex-direction: row;
+      }
+      #submitButton {
+        margin-left: 50px;
+      }
+      .round {
+        margin-bottom: 20px;
+      }
+
+      .match {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+      }
+
+      .match-info {
+        flex: 1;
+      }
+
+      .match-score {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+      }
+      .score-input {
+        margin-right: 10px;
+        width: 50px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        margin-left: 10px;
+      }
+
+      .submit-button {
+        padding: 5px 10px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      .submit-button:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="enter">
+      <h2>Liste des participants au tournoi {{tournament.name}}</h2>
+      <ul>
+        {% for participant in participants %}
+        <li>{{ participant.name }}</li>
+        {% endfor %}
+      </ul>
+
+      {% if not tournament.isStarted %}
+
+      <h2>Ajouter des participants existant au tournois</h2>
+      <ul>
+        {% for participant in notParticipants %}
+        <form
+          action="{% url 'add_existing_participant' tournament.id participant.id %}"
+          method="post"
+        >
+          {% csrf_token %}
+          <input
+            type="hidden"
+            name="participant_id"
+            value="{{ participant.id }}"
+          />
+          <li>{{ participant.name }}</li>
+          <button type="submit">Ajouter au tournoi</button>
+        </form>
+        {% endfor %}
+      </ul>
+
+      <h2>Ajouter de nouveau participant</h2>
+      <form action="{% url 'add_participant' tournament.id %}" method="post">
+        {% csrf_token %}
+        <label for="participant_name">Nom du participant:</label>
+        <input type="text" id="participant_name" name="participant_name" />
+        <!-- Ajoutez d'autres champs pour les informations des participants -->
+        <button type="submit">Ajouter le participant</button>
+      </form>
+      {% endif %}
+    </div>
+    <div id="submitButton">
+      {% if not tournament.isStarted %}
+      <form action="{% url 'create_matches' tournament.id %}" method="post">
+        {% csrf_token %}
+        <button type="submit">Démarrer le tournoi</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div>
+      <h2>Tours du tournoi</h2>
+
+      {% for round_name, matches_in_round in rounds.items %}
+      <div class="round">
+        <h3>{{ round_name }}</h3>
+        <ul class="match-list">
+          {% for match in matches_in_round %}
+          <li class="match">
+            <div class="match-info">
+              {{ match.firstParticipant.name }} vs
+              {{match.secondParticipant.name}}
+            </div>
+            <div class="match-score">
+              {% if match.winner.name %} {{ match.firstParticipantScore }} -
+              {{match.secondParticipantScore }} {% else %}
+              <form
+                action="{% url 'update_round_scores' match.id %}"
+                method="post"
+              >
+                {% csrf_token %}
+                <input
+                  type="number"
+                  class="score-input"
+                  name="firstParticipantScore"
+                  placeholder="Score 1"
+                />
+                vs
+                <input
+                  type="number"
+                  class="score-input"
+                  name="secondParticipantScore"
+                  placeholder="Score 2"
+                />
+                <button class="submit-button" type="submit">Valider</button>
+              </form>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </body>
+</html>
